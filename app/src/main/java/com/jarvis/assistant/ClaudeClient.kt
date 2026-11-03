@@ -9,7 +9,7 @@ import java.net.URLEncoder
 class ApiException(val code: Int, message: String) : Exception(message)
 
 object AIClient {
-    private const val MODEL = "gemini-3.6-flash"
+    private const val MODEL = "gemini-3.8-flash"
     private const val API_URL = "https://generativelanguage.googleapis.com/v1beta/models/$MODEL:generateContent"
     private const val SYSTEM =
         "Ты Джарвис — голосовой ассистент на телефоне. Отвечай по-русски, коротко (1–3 предложения), " +
