@@ -42,7 +42,7 @@ class JarvisService : Service() {
     private lateinit var wm: WindowManager
     private lateinit var root: LinearLayout
     private lateinit var status: TextView
-    private lateinit var bubble: TextView
+    private lateinit var bubble: JarvisOrbView
     private lateinit var params: WindowManager.LayoutParams
     private val main = Handler(Looper.getMainLooper())
     private var recognizer: SpeechRecognizer? = null
@@ -103,15 +103,13 @@ class JarvisService : Service() {
             setPadding((10 * dp).toInt(), (6 * dp).toInt(), (10 * dp).toInt(), (6 * dp).toInt())
             background = GradientDrawable().apply { setColor(0xCC0A1A2F.toInt()); cornerRadius = 16 * dp }
         }
-        bubble = TextView(this).apply {
-            text = "J"; textSize = 22f; setTextColor(Color.WHITE); gravity = Gravity.CENTER
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL; setColor(0xFF00B8D4.toInt())
-                setStroke((3 * dp).toInt(), 0xFF0A1A2F.toInt())
-            }
+        bubble = JarvisOrbView(this).apply {
+            contentDescription = "Джарвис. Нажми, чтобы заговорить"
         }
         root.addView(status, LinearLayout.LayoutParams(-2, -2))
-        root.addView(bubble, LinearLayout.LayoutParams((56 * dp).toInt(), (56 * dp).toInt()).apply { topMargin = (6 * dp).toInt() })
+        root.addView(bubble, LinearLayout.LayoutParams((92 * dp).toInt(), (92 * dp).toInt()).apply {
+            topMargin = (4 * dp).toInt()
+        })
         params = WindowManager.LayoutParams(
             -2, -2, WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
@@ -143,7 +141,7 @@ class JarvisService : Service() {
     private fun hideLater(ms: Long = 7000) { main.removeCallbacks(hideRunnable); main.postDelayed(hideRunnable, ms) }
     private fun setListening(on: Boolean) {
         listening = on
-        (bubble.background as GradientDrawable).setColor(if (on) 0xFFFF5252.toInt() else 0xFF00B8D4.toInt())
+        bubble.setMode(if (on) JarvisOrbView.Mode.LISTENING else JarvisOrbView.Mode.IDLE)
     }
     private fun onBubbleTap() { if (listening) recognizer?.stopListening() else startListening() }
 
@@ -197,6 +195,7 @@ class JarvisService : Service() {
         val currencyQuery = text.lowercase(Locale("ru"))
         if ((currencyQuery.contains("курс") && (currencyQuery.contains("доллар") || currencyQuery.contains("usd"))) ||
             currencyQuery.contains("сколько тенге за доллар")) {
+            bubble.setMode(JarvisOrbView.Mode.THINKING)
             showStatus("Проверяю актуальный курс…")
             Thread {
                 val answer = try { CurrencyClient.usdToKzt() }
@@ -212,6 +211,7 @@ class JarvisService : Service() {
                 reply("Не вижу текста на экране. Открой страницу с текстом и повтори команду.")
                 return
             }
+            bubble.setMode(JarvisOrbView.Mode.THINKING)
             showStatus("Перевожу текст с экрана…")
             Thread {
                 val answer = try { TranslatorClient.translateToRussian(visible) }
@@ -235,6 +235,7 @@ class JarvisService : Service() {
         if (local != null) { reply(local); return }
         val key = getSharedPreferences("jarvis", MODE_PRIVATE).getString("api_key", "").orEmpty()
         if (key.isBlank()) { reply("Чтобы бесплатно отвечать на вопросы, получи ключ Gemini в приложении Джарвис."); return }
+        bubble.setMode(JarvisOrbView.Mode.THINKING)
         showStatus("Думаю…")
         if (history.size >= 8) { history.removeAt(0); history.removeAt(0) }
         history.add("user" to text)
@@ -258,6 +259,7 @@ class JarvisService : Service() {
     }
 
     private fun reply(text: String) {
+        bubble.setMode(JarvisOrbView.Mode.IDLE)
         showStatus(text); hideLater(6000L + text.length * 60L)
         if (ttsReady) tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "jarvis")
     }
