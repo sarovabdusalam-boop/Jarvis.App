@@ -36,6 +36,18 @@ object Commands {
         "карты" to listOf("maps"), "почта" to listOf("gmail", "mail")
     )
 
+    fun trySecret(ctx: Context, input: String): String? {
+        val raw = ctx.getSharedPreferences("jarvis", Context.MODE_PRIVATE)
+            .getString("secret_commands", "") ?: return null
+        val key = input.lowercase(Locale("ru")).replace(Regex("[.,!?;:«»\\\"()]"), " ")
+            .replace(Regex("\\s+"), " ").trim()
+        val command = raw.split("\\n").asSequence().mapNotNull { line ->
+            val p = line.split("\\t", limit = 2)
+            if (p.size == 2 && p[0] == key) p[1] else null
+        }.firstOrNull() ?: return null
+        return tryHandle(ctx, command) ?: "Не смог выполнить действие: $command"
+    }
+
     fun tryHandle(ctx: Context, input: String): String? {
         val cleaned = input.lowercase(Locale("ru")).replace(Regex("[.,!?;:«»\\\"()]"), " ").replace(Regex("\\s+"), " ").trim()
         if (cleaned.isBlank()) return "Повтори, пожалуйста."
