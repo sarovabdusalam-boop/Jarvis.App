@@ -194,6 +194,17 @@ class JarvisService : Service() {
 
     private fun process(text: String) {
         showStatus("Вы: " + text)
+        val currencyQuery = text.lowercase(Locale("ru"))
+        if ((currencyQuery.contains("курс") && (currencyQuery.contains("доллар") || currencyQuery.contains("usd"))) ||
+            currencyQuery.contains("сколько тенге за доллар")) {
+            showStatus("Проверяю актуальный курс…")
+            Thread {
+                val answer = try { CurrencyClient.usdToKzt() }
+                catch (_: Exception) { "Не удалось получить курс сейчас. Проверь подключение к интернету и попробуй ещё раз." }
+                main.post { reply(answer) }
+            }.start()
+            return
+        }
         val normalized = text.trim().lowercase(Locale("ru"))
         if (dictationMode) {
             if (normalized == "стоп" || normalized == "хватит" || normalized == "закончи" ||
