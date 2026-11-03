@@ -49,6 +49,9 @@ class JarvisService : Service() {
     private var tts: TextToSpeech? = null
     private var ttsReady = false
     private var listening = false
+    private var wakeMode = false
+    private var wakeArmed = true
+    private val wakeRetry = Runnable { if (running && wakeArmed && !listening) startWakeListening() }
     private var added = false
     private val history = ArrayList<Pair<String, String>>()
     private val hideRunnable = Runnable { status.visibility = View.GONE }
@@ -74,7 +77,9 @@ class JarvisService : Service() {
         startForegroundCompat()
         if (!added) addOverlay()
         running = true
-        return START_NOT_STICKY
+        wakeArmed = getSharedPreferences("jarvis", MODE_PRIVATE).getBoolean("wake_word_enabled", true)
+        if (wakeArmed) main.postDelayed(wakeRetry, 900)
+        return START_STICKY
     }
 
     private fun startForegroundCompat() {
@@ -134,7 +139,7 @@ class JarvisService : Service() {
             }
         }
         wm.addView(root, params); added = true
-        showStatus("Я здесь. Нажми на кружок."); hideLater(4000)
+        showStatus("Я здесь. Скажи «Джарвис» или нажми на кружок."); hideLater(4000)
     }
 
     private fun showStatus(t: String) { main.removeCallbacks(hideRunnable); status.text = t; status.visibility = View.VISIBLE }
@@ -143,7 +148,13 @@ class JarvisService : Service() {
         listening = on
         bubble.setMode(if (on) JarvisOrbView.Mode.LISTENING else JarvisOrbView.Mode.IDLE)
     }
-    private fun onBubbleTap() { if (listening) recognizer?.stopListening() else startListening() }
+    private fun onBubbleTap() { if (listening) recognizer?.stopListening() else { wakeMode = false; main.removeCallbacks(wakeRetry); startListening() } }
+
+    private fun startWakeListening() {
+        if (!wakeArmed || !running || listening) return
+        wakeMode = true
+        startListening()
+    }
 
     private fun startListening() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -170,6 +181,7 @@ class JarvisService : Service() {
         override fun onEndOfSpeech() { setListening(false) }
         override fun onError(error: Int) {
             setListening(false)
+            if (wakeMode && wakeArmed) { main.removeCallbacks(wakeRetry); main.postDelayed(wakeRetry, 2500); return }
             val msg = when (error) {
                 SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Не расслышал. Нажми ещё раз."
                 SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Нет доступа к микрофону."
@@ -181,6 +193,22 @@ class JarvisService : Service() {
         override fun onResults(results: Bundle?) {
             setListening(false)
             val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+            if (wakeMode && wakeArmed) {
+                val spoken = text.orEmpty()
+                val normalized = spoken.lowercase(Locale("ru")).replace("ё", "е")
+                val index = normalized.indexOf("джарвис")
+                if (index < 0) {
+                    main.removeCallbacks(wakeRetry); main.postDelayed(wakeRetry, 350)
+                    return
+                }
+                val command = spoken.substring((index + "джарвис".length).coerceAtMost(spoken.length)).trim(' ', ',', '.', '!', '?', ':')
+                wakeMode = false
+                if (command.isBlank()) {
+                    reply("Слушаю.")
+                    main.removeCallbacks(wakeRetry); main.postDelayed(wakeRetry, 1300)
+                } else process(command)
+                return
+            }
             if (text.isNullOrBlank()) { showStatus("Не расслышал."); hideLater() } else process(text)
         }
         override fun onPartialResults(partialResults: Bundle?) {
@@ -273,6 +301,10 @@ class JarvisService : Service() {
         bubble.setMode(JarvisOrbView.Mode.IDLE)
         showStatus(text); hideLater(6000L + text.length * 60L)
         if (ttsReady) tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "jarvis")
+        if (wakeArmed && running) {
+            main.removeCallbacks(wakeRetry)
+            main.postDelayed(wakeRetry, (1800L + text.length * 65L).coerceAtMost(9000L))
+        }
     }
 
     override fun onDestroy() {
