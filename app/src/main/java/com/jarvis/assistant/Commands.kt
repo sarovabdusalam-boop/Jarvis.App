@@ -70,7 +70,7 @@ object Commands {
         if (cleaned.startsWith("найди ") || cleaned.startsWith("поищи ") || cleaned.startsWith("зайди в гугл") ||
             cleaned.startsWith("открой гугл и найди") || cleaned.startsWith("погугли ")) {
             val query = cleaned.removePrefix("зайди в гугл").removePrefix("открой гугл и найди")
-                .removePrefix("найди").removePrefix("поищи").removePrefix("погугли").trim()
+                .removePrefix("найди").removePrefix("поищи").removePrefix("погугли").removePrefix("напиши").removePrefix("текст").trim()
             if (query.isNotBlank()) {
                 val url = "https://www.google.com/search?q=" + Uri.encode(query)
                 return launch(ctx, Intent(Intent.ACTION_VIEW, Uri.parse(url))) ?: "Открываю поиск: $query"
