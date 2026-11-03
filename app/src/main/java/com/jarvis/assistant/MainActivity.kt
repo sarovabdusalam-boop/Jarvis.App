@@ -75,7 +75,10 @@ class MainActivity : Activity() {
             setSingleLine(true)
         }
         col.addView(keyInput)
-        col.addView(btn("Получить бесплатный ключ Google") {\n            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://aistudio.google.com/app/apikey")))\n        })\n        col.addView(btn("Сохранить ключ") {
+        col.addView(btn("Получить бесплатный ключ Google") {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://aistudio.google.com/app/apikey")))
+        })
+        col.addView(btn("Сохранить ключ") {
             val key = keyInput.text.toString().trim()
             if (key.isEmpty()) toast("Сначала получи и вставь ключ Gemini API")
             else { prefs.edit().putString("api_key", key).apply(); toast("Ключ сохранён на этом телефоне"); refresh() }
