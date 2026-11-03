@@ -36,6 +36,7 @@ class JarvisService : Service() {
         const val ACTION_STOP = "com.jarvis.assistant.STOP"
         const val CHANNEL_ID = "jarvis"
         @Volatile var running = false
+        @Volatile var dictationMode = false
     }
 
     private lateinit var wm: WindowManager
@@ -193,6 +194,18 @@ class JarvisService : Service() {
 
     private fun process(text: String) {
         showStatus("Вы: " + text)
+        val normalized = text.trim().lowercase(Locale("ru"))
+        if (dictationMode) {
+            if (normalized == "стоп" || normalized == "хватит" || normalized == "закончи" ||
+                normalized == "останови диктовку" || normalized == "стоп диктовка") {
+                dictationMode = false
+                reply("Диктовка остановлена.")
+                return
+            }
+            val pasted = JarvisAccessibilityService.instance?.pasteIntoFocusedField(text) == true
+            reply(if (pasted) "Записал." else "Не вижу активного поля ввода. Открой место, куда нужно писать, и снова скажи текст.")
+            return
+        }
         val local = try { Commands.tryHandle(this, text) } catch (e: Exception) { "Не получилось: " + e.message }
         if (local != null) { reply(local); return }
         val key = getSharedPreferences("jarvis", MODE_PRIVATE).getString("api_key", "").orEmpty()
@@ -225,7 +238,7 @@ class JarvisService : Service() {
     }
 
     override fun onDestroy() {
-        running = false; main.removeCallbacksAndMessages(null)
+        running = false; dictationMode = false; main.removeCallbacksAndMessages(null)
         if (added) try { wm.removeView(root) } catch (_: Exception) {}
         recognizer?.destroy(); tts?.stop(); tts?.shutdown()
         super.onDestroy()
