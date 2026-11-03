@@ -196,20 +196,20 @@ class JarvisService : Service() {
         val local = try { Commands.tryHandle(this, text) } catch (e: Exception) { "Не получилось: " + e.message }
         if (local != null) { reply(local); return }
         val key = getSharedPreferences("jarvis", MODE_PRIVATE).getString("api_key", "").orEmpty()
-        if (key.isBlank()) { reply("Чтобы отвечать на вопросы, добавь ключ Claude в приложении Джарвис."); return }
+        if (key.isBlank()) { reply("Чтобы бесплатно отвечать на вопросы, получи ключ Gemini в приложении Джарвис."); return }
         showStatus("Думаю…")
         if (history.size >= 8) { history.removeAt(0); history.removeAt(0) }
         history.add("user" to text)
         val snapshot = ArrayList(history)
         Thread {
             var ok = true
-            val answer = try { ClaudeClient.ask(key, snapshot) }
+            val answer = try { AIClient.ask(key, snapshot) }
             catch (e: ApiException) {
                 ok = false
                 when (e.code) {
-                    401 -> "Неверный ключ Claude."
+                    401 -> "Неверный ключ Gemini."
                     429 -> "Слишком много запросов. Подожди минуту."
-                    else -> "Ошибка Claude: " + e.message
+                    else -> "Ошибка Gemini: " + e.message
                 }
             } catch (e: Exception) { ok = false; "Нет связи с интернетом." }
             main.post {
