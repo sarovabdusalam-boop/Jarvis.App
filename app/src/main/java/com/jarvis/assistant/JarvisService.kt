@@ -206,6 +206,20 @@ class JarvisService : Service() {
             return
         }
         val normalized = text.trim().lowercase(Locale("ru"))
+        if (normalized == "переведи" || normalized == "переведи экран" || normalized == "переведи текст на экране") {
+            val visible = JarvisAccessibilityService.instance?.readVisibleScreenText().orEmpty()
+            if (visible.isBlank()) {
+                reply("Не вижу текста на экране. Открой страницу с текстом и повтори команду.")
+                return
+            }
+            showStatus("Перевожу текст с экрана…")
+            Thread {
+                val answer = try { TranslatorClient.translateToRussian(visible) }
+                catch (_: Exception) { "Не удалось перевести текст. Проверь интернет и попробуй ещё раз." }
+                main.post { reply(answer) }
+            }.start()
+            return
+        }
         if (dictationMode) {
             if (normalized == "стоп" || normalized == "хватит" || normalized == "закончи" ||
                 normalized == "останови диктовку" || normalized == "стоп диктовка") {
