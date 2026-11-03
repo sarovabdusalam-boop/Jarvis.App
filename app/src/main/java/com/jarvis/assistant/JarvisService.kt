@@ -231,10 +231,21 @@ class JarvisService : Service() {
             reply(if (pasted) "Записал." else "Не вижу активного поля ввода. Открой место, куда нужно писать, и снова скажи текст.")
             return
         }
+        val secret = try { Commands.trySecret(this, text) } catch (_: Exception) { null }
+        if (secret != null) { reply(secret); return }
         val local = try { Commands.tryHandle(this, text) } catch (e: Exception) { "Не получилось: " + e.message }
         if (local != null) { reply(local); return }
         val key = getSharedPreferences("jarvis", MODE_PRIVATE).getString("api_key", "").orEmpty()
-        if (key.isBlank()) { reply("Чтобы бесплатно отвечать на вопросы, получи ключ Gemini в приложении Джарвис."); return }
+        if (key.isBlank()) {
+            if (!LocalAi.isDownloaded(this)) { reply("Для бесплатного ИИ открой приложение Джарвис → Текстовый чат → скачай локальную модель по Wi-Fi."); return }
+            bubble.setMode(JarvisOrbView.Mode.THINKING)
+            showStatus("Запускаю локальный мозг…")
+            Thread {
+                val answer = try { LocalAi.ask(this, text) } catch (e: Exception) { "Локальный ИИ: " + e.message }
+                main.post { reply(answer) }
+            }.start()
+            return
+        }
         bubble.setMode(JarvisOrbView.Mode.THINKING)
         showStatus("Думаю…")
         if (history.size >= 8) { history.removeAt(0); history.removeAt(0) }
