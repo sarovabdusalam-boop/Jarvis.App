@@ -49,6 +49,7 @@ object Commands {
     }
 
     fun tryHandle(ctx: Context, input: String): String? {
+        Messaging.tryHandle(ctx, input)?.let { return it }
         val cleaned = input.lowercase(Locale("ru")).replace(Regex("[.,!?;:«»\\\"()]"), " ").replace(Regex("\\s+"), " ").trim()
         if (cleaned.isBlank()) return "Повтори, пожалуйста."
 
