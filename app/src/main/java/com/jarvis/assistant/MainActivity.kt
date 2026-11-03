@@ -67,17 +67,17 @@ class MainActivity : Activity() {
         col.addView(btn("Открыть настройки доступности") {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         })
-        col.addView(tv("4. Ключ Claude API (чтобы отвечать на вопросы)", 16f, top = 18))
+        col.addView(tv("4. Бесплатный ключ Google Gemini (для ответов ИИ)", 16f, top = 18))
         sKey = tv("", 13f, grey); col.addView(sKey)
         keyInput = EditText(this).apply {
-            hint = "sk-ant-..."; setHintTextColor(0xFF607D8B.toInt()); setTextColor(Color.WHITE)
+            hint = "Вставь ключ Gemini API"; setHintTextColor(0xFF607D8B.toInt()); setTextColor(Color.WHITE)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
             setSingleLine(true)
         }
         col.addView(keyInput)
-        col.addView(btn("Сохранить ключ") {
+        col.addView(btn("Получить бесплатный ключ Google") {\n            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://aistudio.google.com/app/apikey")))\n        })\n        col.addView(btn("Сохранить ключ") {
             val key = keyInput.text.toString().trim()
-            if (key.isEmpty()) toast("Сначала вставь ключ Claude API")
+            if (key.isEmpty()) toast("Сначала получи и вставь ключ Gemini API")
             else { prefs.edit().putString("api_key", key).apply(); toast("Ключ сохранён на этом телефоне"); refresh() }
         })
         col.addView(btn("Удалить сохранённый ключ") {
