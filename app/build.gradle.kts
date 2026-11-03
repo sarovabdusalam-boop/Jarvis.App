@@ -3,6 +3,10 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+dependencies {
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.18.0")
+}
+
 android {
     namespace = "com.jarvis.assistant"
     compileSdk = 34
@@ -24,10 +28,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    dependencies {
-        implementation("com.google.ai.edge.litertlm:litertlm-android:0.18.0")
     }
 
     kotlinOptions {
