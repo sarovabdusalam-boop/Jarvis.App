@@ -54,7 +54,7 @@ class ChatActivity : Activity() {
     private fun send() {
         val q=field.text.toString().trim(); if(q.isEmpty()) return
         field.text.clear(); add("Ты",q); save("Ты",q)
-        val custom=Commands.trySecret(this,q)
+        val custom=Commands.trySecret(this,q) ?: Commands.tryHandle(this,q)
         if(custom!=null) { add("Джарвис",custom); save("Джарвис",custom); return }
         if(!LocalAi.isDownloaded(this)) {
             val answer="Сначала скачай локальную модель кнопкой выше. Она бесплатная и после загрузки работает без интернета."
